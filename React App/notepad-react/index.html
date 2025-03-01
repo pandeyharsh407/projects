@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTF Editor Web App</title>
+<!-- Tailwind CSS -->
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+    /* Light theme styles */
+    body {
+        background-color: #000;
+        font-family: Arial, sans-serif;
+    }
+    .btn-primary {
+        background-color: #f2d024;
+        border-color: #f2d024;
+        margin-top: 0.2vh;
+        margin-bottom: 0.2vh;
+    }
+    .btn-primary:hover {
+        background-color: #e4bb23;
+        border-color: #e4bb23;
+    }
+    .btn-danger {
+        background-color: #e63946; /* Rose red */
+        color: #fff; /* White */
+        font-weight: bold; /* Make text bold */
+    }
+    .btn-danger:hover {
+        background-color: #f66; /* Lighter rose red */
+        color: #000;
+        border-color: #ffffff;
+    }
+    #editor-container {
+        border: 3px solid #f2d024;
+        border-radius: 10px;
+        padding: 10px;
+        min-height: 80vh; /* 80% of the viewport height */
+        min-width: 80vw; /* 80% of the viewport width */
+        background-color: #D2FFC9; /* Set to #D2FFC9 */
+        margin: 0;
+    }
+    #editor-toolbar button {
+        margin-right: 5px;
+    }
+    #filename-input {
+        height: 30px;
+        width: 150px;
+        margin-right: 20px;
+        margin-top: 0.2vh;
+        margin-bottom: 0.2vh;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        font-size: 14px;
+    }
+
+    .toggle {
+        position: absolute;
+        cursor: pointer;
+        top: 50%;
+        transform: translateY(-50%);
+        right: 1rem;
+        font-size: 150%;
+        color: #fff;
+    }
+
+    .toggle:before {
+        content: '🌒'; /* Set the default icon to night mode */
+    }
+
+    .toggle.active:before {
+        content: '☀️'; /* Set the alternate icon to day mode */
+    }
+
+    .toggle.animate {
+        animation: animate .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+/* Wave effect */
+.wave {
+    position: absolute;
+    top: 35px;
+    right: 40px;
+    border-radius: 100%;
+    width: 2px;
+    height: 2px;
+    display: block;
+    z-index: -1;
+    box-shadow: 0 0 0 0 #212121;
+    transition: box-shadow .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.wave.active {
+    background: #212121;
+    box-shadow: 0 0 0 9999px #212121;
+}
+
+/* Animation for wave to disappear */
+/* Animation for wave to disappear */
+@keyframes waveDisappear {
+    0%, 10% {
+        box-shadow: 0 0 0 9999px #000;
+    }
+    20%, 30% {
+        box-shadow: 0 0 0 9999px #333;
+    }
+    40%, 50% {
+        box-shadow: 0 0 0 9999px #666;
+    }
+    60%, 70% {
+        box-shadow: 0 0 0 9999px #999;
+    }
+    80%, 90% {
+        box-shadow: 0 0 0 9999px #ccc;
+    }
+    100% {
+        box-shadow: 0 0 0 0 #fff;
+    }
+}
+
+    .theme-dark body {
+        background-color: #dfd2c3;
+        color: #000;
+    }
+    .theme-dark .btn-primary {
+        background-color: #e4bb23;
+        border-color: #e4bb23;
+    }
+    .theme-dark .btn-primary:hover {
+        background-color: #f2d024;
+        border-color: #f2d024;
+    }
+    .theme-dark .btn-danger {
+        background-color: #f66; /* Lighter rose red */
+        color: #000;
+        font-weight: bold; /* Make text bold */
+    }
+    .theme-dark .btn-danger:hover {
+        background-color: #e63946; /* Rose red */
+        color: #fff; /* White */
+        border-color: #ffffff;
+    }
+</style>
+</head>
+<body>
+    <nav class="bg-gray-800 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+            <div class="flex items-center">
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                        <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">About</a>
+                        <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Services</a>
+                        <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <div class="toggle">
+                <label for="switch">
+                </label>
+                <span id="wave" class="wave"></span>
+            </div>
+            <!-- Hamburger Menu -->
+            <div class="-mr-2 flex md:hidden">
+                <button type="button" class="bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false">
+                    <span class="sr-only">Open main menu</span>
+                    <!-- Heroicon name: menu -->
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mx-auto mt-10">
+        <div id="editor-toolbar" class="flex flex-wrap justify-center mb-4" role="toolbar" aria-label="Editor Toolbar">
+            <input type="text" id="filename-input" placeholder="File Name" class="mr-2 mb-2 md:mb-0 md:w-auto">
+            <div class="flex flex-wrap justify-center sm:justify-start">
+                <div class="btn-group mr-2" role="group" aria-label="Text Formatting">
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('bold')">Bold</button>
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('italic')">Italic</button>
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('underline')">Underline</button>
+                </div>
+                <div class="btn-group mr-2" role="group" aria-label="Lists">
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('insertUnorderedList')">Bullet List</button>
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('insertOrderedList')">Numbered List</button>
+                </div>
+                <div class="btn-group mr-2" role="group" aria-label="Text Alignment">
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('justifyLeft')">Align Left</button>
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('justifyCenter')">Align Center</button>
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="execCommand('justifyRight')">Align Right</button>
+                </div>
+                <div class="btn-group mr-2" role="group" aria-label="Image Upload">
+                    <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                    <button class="btn btn-primary rounded-md px-3 py-1" onclick="document.getElementById('image-upload').click();">Insert Image</button>
+                </div>
+                <div class="btn-group" role="group" aria-label="Clear Formatting">
+                    <button class="btn btn-danger rounded-md px-3 py-1" onclick="clearFormatting()">Clear Formatting</button>
+                </div>
+            </div>
+        </div>
+        <div id="editor-container" contenteditable="true"></div>
+    </div>    
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
+
+    <footer class="text-center text-sm text-gray-500 mt-8">
+        Designed and Developed with ❤️ by Harsh Pandey in India 🇮🇳
+        <div class="media-icons">
+            <a href="https://www.linkedin.com/in/pandeyharsh407/" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-linkedin-in text-gray-500 hover:text-blue-600 mx-2"></i>
+            </a>            
+            <a href="https://instagram.com/pandeyharsh407/" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-instagram text-gray-500 hover:text-red-300 mx-2"></i>
+            </a>
+            <a href="https://wa.me/+918811943389/" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-whatsapp text-gray-500 hover:text-green-700 mx-2"></i>
+            </a>
+            <a href="https://github.com/pandeyharsh407/" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-github text-gray-500 hover:text-green-100 mx-2"></i>
+            </a>
+            <a href="mailto:pandeyharsh407@gmail.com">
+                <i class="fab fa-google text-gray-500 hover:text-red-500 mx-2"></i>
+            </a>
+        </div>              
+    </footer>    
+
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    <!-- Tailwind CSS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.9/mammoth.browser.min.js"></script>
+    <script>
+    function execCommand(command, value = null) {
+        document.execCommand(command, false, value);
+        saveToCache();
+    }
+
+    function clearFormatting() {
+        document.execCommand('removeFormat', false, null);
+        saveToCache();
+    }
+
+    function saveToCache() {
+        const content = document.getElementById('editor-container').innerHTML;
+        localStorage.setItem('editorContent', content);
+    }
+
+    function loadFromCache() {
+        const content = localStorage.getItem('editorContent');
+        if (content) {
+            document.getElementById('editor-container').innerHTML = content;
+        }
+    }
+
+    $(document).ready(function () {
+        $('#image-upload').change(function () {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = `<img src="${e.target.result}" alt="Uploaded Image" style="max-width: 100%; height: auto;">`;
+                    document.execCommand('insertHTML', false, img);
+                    saveToCache();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Load content from cache on page load
+        loadFromCache();
+
+        // Save content to cache every 2 seconds
+        setInterval(saveToCache, 2000);
+    });
+
+        // Listen for Shift+S keypress event
+        document.addEventListener('keydown', function(event) {
+            if (event.shiftKey && event.key === 'S') {
+                event.preventDefault();
+                saveAsDocx();
+            }
+        });
+
+        // Function to save content as docx
+        function saveAsDocx() {
+            const filename = document.getElementById('filename-input').value || 'document';
+            const content = document.getElementById('editor-container').innerHTML;
+
+            // Create a new Blob object with the content
+            const blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+
+            // Create a temporary link element to trigger the download
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${filename}.docx`;
+
+            // Append the link to the body and trigger the download
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+    // Check if theme preference is stored in localStorage
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme) {
+        // Apply the stored theme
+        document.documentElement.classList.add(storedTheme);
+    } else {
+        // Apply default theme
+        document.documentElement.classList.add('theme-light');
+    }
+    
+    // Toggle button functionality
+    const toggleButton = document.querySelector('.toggle');
+    toggleButton.addEventListener('click', function() {
+        // Toggle theme class on the document element
+        document.documentElement.classList.toggle('theme-dark');
+        
+        // Update localStorage with the current theme preference
+        const currentTheme = document.documentElement.classList.contains('theme-dark') ? 'theme-dark' : 'theme-light';
+        localStorage.setItem('theme', currentTheme);
+    });
+});
+
+    </script>
+</body>
+</html>
